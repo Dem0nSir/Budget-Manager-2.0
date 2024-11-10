@@ -117,6 +117,7 @@ export default function BudgetManager() {
                     <h1 className="text-3xl font-bold tracking-tight">Budget Manager</h1>
                     <p className="text-muted-foreground">Track your income and expenses</p>
                 </div>
+                {/*//Add income dialog */}
                 <div className="flex gap-4">
                     <Dialog>
                         <DialogTrigger asChild>
