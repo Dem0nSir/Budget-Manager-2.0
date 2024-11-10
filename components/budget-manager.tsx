@@ -1,8 +1,8 @@
 'use client'
 
-import {useState} from 'react'
+import {useState, useEffect} from 'react'
 import {Button} from "@/components/ui/button"
-import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card"
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {
     Dialog,
     DialogContent,
@@ -23,7 +23,6 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import {DollarSign, PlusCircle, MinusCircle, Wallet, Edit, Trash} from "lucide-react"
-import {number} from "prop-types";
 
 interface IncomeItem {
     id: number
@@ -41,16 +40,26 @@ interface ExpenseItem {
 export default function BudgetManager() {
     const [income, setIncome] = useState<IncomeItem[]>([])
     const [expenses, setExpenses] = useState<ExpenseItem[]>([])
-    const [newIncome, setNewIncome] = useState({
-        source: '',
-        amount: ''
-    })
+    const [newIncome, setNewIncome] = useState({source: '', amount: ''})
     const [newExpense, setNewExpense] = useState({description: '', amount: '', category: ''})
+    const [editingIncome, setEditingIncome] = useState<IncomeItem | null>(null)
+    const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null)
+
     const totalIncome = income.reduce((sum, item) => sum + item.amount, 0)
     const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0)
     const balance = totalIncome - totalExpenses
-    const [editingIncome, setEditingIncome] = useState<IncomeItem | null>(null)
-    const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null)
+
+    useEffect(() => {
+        const savedIncome = localStorage.getItem('income')
+        const savedExpenses = localStorage.getItem('expenses')
+        if (savedIncome) setIncome(JSON.parse(savedIncome))
+        if (savedExpenses) setExpenses(JSON.parse(savedExpenses))
+    }, [])
+
+    useEffect(() => {
+        localStorage.setItem('income', JSON.stringify(income))
+        localStorage.setItem('expenses', JSON.stringify(expenses))
+    }, [income, expenses])
 
     const handleAddIncome = () => {
         if (newIncome.source && newIncome.amount) {
@@ -79,6 +88,20 @@ export default function BudgetManager() {
         setEditingExpense(item)
     }
 
+    const handleUpdateIncome = () => {
+        if (editingIncome) {
+            setIncome(income.map(item => item.id === editingIncome.id ? editingIncome : item))
+            setEditingIncome(null)
+        }
+    }
+
+    const handleUpdateExpense = () => {
+        if (editingExpense) {
+            setExpenses(expenses.map(item => item.id === editingExpense.id ? editingExpense : item))
+            setEditingExpense(null)
+        }
+    }
+
     const handleDeleteIncome = (id: number) => {
         setIncome(income.filter(item => item.id !== id))
     }
@@ -101,15 +124,14 @@ export default function BudgetManager() {
                                 <PlusCircle className="mr-2 h-4 w-4"/>
                                 Add Income
                             </Button>
-
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>Add Income</DialogTitle>
+                                <DialogTitle>Add New Income</DialogTitle>
                                 <DialogDescription>Add a new source of income to your budget.</DialogDescription>
                             </DialogHeader>
-                            <div className='grid gap-4 py-4'>
-                                <div className='grid gap-2'>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
                                     <Label htmlFor="source">Source</Label>
                                     <Input
                                         id="source"
@@ -118,10 +140,15 @@ export default function BudgetManager() {
                                         onChange={(e) => setNewIncome({...newIncome, source: e.target.value})}
                                     />
                                 </div>
-                                <div className='grid gap-2'>
+                                <div className="grid gap-2">
                                     <Label htmlFor="amount">Amount</Label>
-                                    <Input id="amount" placeholder="Enter amount" type="number" value={newIncome.amount}
-                                           onChange={(e) => setNewIncome({...newIncome, amount: e.target.value})}/>
+                                    <Input
+                                        id="amount"
+                                        type="number"
+                                        placeholder="Enter amount"
+                                        value={newIncome.amount}
+                                        onChange={(e) => setNewIncome({...newIncome, amount: e.target.value})}
+                                    />
                                 </div>
                             </div>
                             <DialogFooter>
@@ -178,14 +205,15 @@ export default function BudgetManager() {
                     </Dialog>
                 </div>
             </div>
+
             <div className="grid gap-6 md:grid-cols-3 mb-8">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle>Total Income</CardTitle>
-                        <MinusCircle className="h-4 w-4 text-muted-foreground"/>
+                        <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground"/>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{totalIncome.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-green-600">${totalIncome.toLocaleString()}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -214,7 +242,7 @@ export default function BudgetManager() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Income</CardTitle>
-                        <CardDescription>Your source of income</CardDescription>
+                        <CardDescription>Your sources of income</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {income.length > 0 ? (
@@ -254,6 +282,7 @@ export default function BudgetManager() {
                         )}
                     </CardContent>
                 </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Expenses</CardTitle>
@@ -275,13 +304,16 @@ export default function BudgetManager() {
                                         <TableRow key={item.id}>
                                             <TableCell>{item.description}</TableCell>
                                             <TableCell>{item.category}</TableCell>
-                                            <TableCell className="text-right">${item.amount.toLocaleString()}</TableCell>
+                                            <TableCell
+                                                className="text-right">${item.amount.toLocaleString()}</TableCell>
                                             <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={() => handleEditExpense(item)}>
-                                                    <Edit className="h-4 w-4" />
+                                                <Button variant="ghost" size="icon"
+                                                        onClick={() => handleEditExpense(item)}>
+                                                    <Edit className="h-4 w-4"/>
                                                 </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteExpense(item.id)}>
-                                                    <Trash className="h-4 w-4" />
+                                                <Button variant="ghost" size="icon"
+                                                        onClick={() => handleDeleteExpense(item.id)}>
+                                                    <Trash className="h-4 w-4"/>
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
@@ -290,7 +322,7 @@ export default function BudgetManager() {
                             </Table>
                         ) : (
                             <div className="flex flex-col items-center justify-center py-8 text-center">
-                                <MinusCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                                <MinusCircle className="h-12 w-12 text-muted-foreground mb-4"/>
                                 <p className="text-sm text-muted-foreground">No expenses added yet</p>
                             </div>
                         )}
@@ -298,13 +330,87 @@ export default function BudgetManager() {
                 </Card>
             </div>
 
-            <Dialog open={!!editingIncome} onOpenChange={()=>setEditingIncome(null)}>
+            <Dialog open={!!editingIncome} onOpenChange={() => setEditingIncome(null)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Edit Income</DialogTitle>
                     </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-source">Source</Label>
+                            <Input
+                                id="edit-source"
+                                value={editingIncome?.source || ''}
+                                onChange={(e) => setEditingIncome(prev => prev ? {
+                                    ...prev,
+                                    source: e.target.value
+                                } : null)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-amount">Amount</Label>
+                            <Input
+                                id="edit-amount"
+                                type="number"
+                                value={editingIncome?.amount || ''}
+                                onChange={(e) => setEditingIncome(prev => prev ? {
+                                    ...prev,
+                                    amount: Number(e.target.value)
+                                } : null)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleUpdateIncome}>Update Income</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
-                    <div></div>
+            <Dialog open={!!editingExpense} onOpenChange={() => setEditingExpense(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Expense</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-description">Description</Label>
+                            <Input
+                                id="edit-description"
+                                value={editingExpense?.description || ''}
+                                onChange={(e) => setEditingExpense(prev => prev ? {
+                                    ...prev,
+                                    description: e.target.value
+                                } : null)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-amount">Amount</Label>
+                            <Input
+                                id="edit-amount"
+
+                                type="number"
+                                value={editingExpense?.amount || ''}
+                                onChange={(e) => setEditingExpense(prev => prev ? {
+                                    ...prev,
+                                    amount: Number(e.target.value)
+                                } : null)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-category">Category</Label>
+                            <Input
+                                id="edit-category"
+                                value={editingExpense?.category || ''}
+                                onChange={(e) => setEditingExpense(prev => prev ? {
+                                    ...prev,
+                                    category: e.target.value
+                                } : null)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleUpdateExpense}>Update Expense</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
