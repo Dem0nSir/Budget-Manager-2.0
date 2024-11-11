@@ -23,6 +23,8 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import {DollarSign, PlusCircle, MinusCircle, Wallet, Edit, Trash} from "lucide-react"
+import {Bar, BarChart, Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip} from "recharts"
+import {ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui/chart"
 
 interface IncomeItem {
     id: number
@@ -109,6 +111,16 @@ export default function BudgetManager() {
     const handleDeleteExpense = (id: number) => {
         setExpenses(expenses.filter(item => item.id !== id))
     }
+
+    const incomeData = income.map(item => ({name: item.source, value: item.amount}))
+    const expenseData = expenses.map(item => ({name: item.description, value: item.amount}))
+    const balanceData = [
+        {name: 'Income', value: totalIncome},
+        {name: 'Expenses', value: totalExpenses},
+        {name: 'Balance', value: balance}
+    ]
+
+    console.log(balanceData);
 
     return (
         <div className="container mx-auto py-6 px-6">
@@ -238,6 +250,77 @@ export default function BudgetManager() {
                     </CardContent>
                 </Card>
             </div>
+
+            <div className="grid gap-6 md:grid-cols-2 mb-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Income Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer config={{
+                            income: {
+                                label: "Income",
+                                color: "hsl(var(--chart-1))",
+                            },
+                        }} className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={incomeData}>
+                                    <XAxis dataKey="name"/>
+                                    <YAxis/>
+                                    <ChartTooltip content={<ChartTooltipContent  payload={incomeData} label="Income"/>}/>
+                                    <Bar dataKey="value" fill="var(--color-income)"/>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Expense Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer config={{
+                            expenses: {
+                                label: "Expenses",
+                                color: "hsl(var(--chart-2))",
+                            },
+                        }} className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={expenseData}>
+                                    <XAxis dataKey="name"/>
+                                    <YAxis/>
+                                    <ChartTooltip content={<ChartTooltipContent  payload={expenseData} label="Expenses"/>}/>
+                                    <Bar dataKey="value" fill="var(--color-expenses)"/>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Card className="mb-8">
+                <CardHeader>
+                    <CardTitle>Budget Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={{
+                        balance: {
+                            label: "Amount",
+                            color: "hsl(var(--chart-3))",
+                        },
+                    }} className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={balanceData}>
+                                <XAxis dataKey="name"/>
+                                <YAxis/>
+                                <ChartTooltip content={<ChartTooltipContent payload={balanceData} label="Balance"/>}/>
+                                <Line type="monotone" dataKey="value" stroke="var(--color-balance)"/>
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
 
             <div className="grid gap-6 md:grid-cols-2">
                 <Card>
